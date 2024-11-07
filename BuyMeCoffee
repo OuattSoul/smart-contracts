@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.26;
+
+
+contract BuyMeCoffee{
+
+    address public immutable i_owner;
+    address[] public donators;
+    mapping(address => uint256) public amountFundedByAddress;
+    event Notification(address indexed donator, uint256 indexed amountDonated, string message);
+
+    constructor(){
+        i_owner = msg.sender;
+    }
+
+    modifier onlyOwner(){
+        require(msg.sender == i_owner, "Not owner");
+        _;
+    }
+
+    function FundMe() public payable{
+        require(msg.sender.balance > msg.value, "Unsufficient balance");
+        donators.push(msg.sender);
+        amountFundedByAddress[msg.sender] += msg.value;
+        emit Notification(msg.sender, msg.value, "You just got a tip for coffee");
+    }
+
+
+    function withdraw() public onlyOwner{
+        
+        for (uint256 funderIndex; funderIndex < donators.length; funderIndex++){
+            address funder = donators[funderIndex];
+            amountFundedByAddress[funder] = 0;
+
+        }
+        donators = new address[](0);
+        
+        (bool success, ) = payable(msg.sender).call{value : address(this).balance}("");
+        require (success, "Funding failed");
+
+        //exercise : event to notify that all the funds have been withdrawn
+    }
+
+
+    //receive
+    receive() external payable{
+        FundMe();
+    }
+
+    //fallback
+    fallback() external payable{
+        FundMe();
+    }
+
+}
